@@ -36,14 +36,3 @@ User gets push notifications, with a reminder to record the activities for all a
 ## Record activity
 
 TODO
-
-# Technology
-
-Cross-platform
-
-Backend:
-.NET 8 Web API + EF Core + PostgreSQL
-Hosted on AWS API gateway + lambdas
-
-Frontend:
-Flutter

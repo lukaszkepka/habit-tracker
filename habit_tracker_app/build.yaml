@@ -1,0 +1,8 @@
+targets:
+  $default:
+    builders:
+      drift_dev:
+        # Only the database code needs drift generation; scanning the whole
+        # lib/ folder is slow and was hanging the build.
+        generate_for:
+          - lib/core/database/drift/**

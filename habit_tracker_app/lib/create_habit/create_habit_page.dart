@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../core/domain/habit_definition.dart';
+
 String _formatCalendarDate(DateTime d) {
   final y = d.year.toString().padLeft(4, '0');
   final m = d.month.toString().padLeft(2, '0');
@@ -15,7 +17,7 @@ String _formatNotificationTime(TimeOfDay t) {
 
 /// Create-habit form aligned with [docs/project.md]: name, description, frequency
 /// (N times per day/week/month), end date, notification time. Pops with a
-/// `Map<String, String>` in mock API shape when creation is confirmed.
+/// [NewHabitDefinition] when creation is confirmed.
 class CreateHabitPage extends StatefulWidget {
   const CreateHabitPage({super.key});
 
@@ -29,7 +31,7 @@ class _CreateHabitPageState extends State<CreateHabitPage> {
   final _descriptionController = TextEditingController();
   final _frequencyCountController = TextEditingController(text: '1');
 
-  String _frequencyUnit = 'day';
+  FrequencyPeriod _frequencyUnit = FrequencyPeriod.day;
   late DateTime _endDate;
   late TimeOfDay _notificationTime;
 
@@ -75,19 +77,18 @@ class _CreateHabitPageState extends State<CreateHabitPage> {
     }
   }
 
-  Map<String, String> _buildResultMap() {
+  NewHabitDefinition _buildResult() {
     final today = DateTime.now();
-    final calendarToday = DateTime(today.year, today.month, today.day);
-    return {
-      'name': _nameController.text.trim(),
-      'description': _descriptionController.text.trim(),
-      'last_record_date': _formatCalendarDate(calendarToday),
-      'started': _formatCalendarDate(calendarToday),
-      'frequency_n': _frequencyCountController.text.trim(),
-      'frequency_unit': _frequencyUnit,
-      'end_date': _endDate.toIso8601String(),
-      'notification_time': _notificationTime.toString(),
-    };
+    return NewHabitDefinition(
+      name: _nameController.text.trim(),
+      description: _descriptionController.text.trim(),
+      frequencyCount: int.parse(_frequencyCountController.text.trim()),
+      frequencyPeriod: _frequencyUnit,
+      startDate: DateTime(today.year, today.month, today.day),
+      endDate: _endDate,
+      notificationTimeMinutes:
+          _notificationTime.hour * 60 + _notificationTime.minute,
+    );
   }
 
   Future<void> _submit() async {
@@ -118,7 +119,7 @@ class _CreateHabitPageState extends State<CreateHabitPage> {
     );
 
     if (confirmed == true && mounted) {
-      Navigator.of(context).pop<Map<String, String>>(_buildResultMap());
+      Navigator.of(context).pop<NewHabitDefinition>(_buildResult());
     }
   }
 
@@ -197,10 +198,11 @@ class _CreateHabitPageState extends State<CreateHabitPage> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                SegmentedButton<String>(
+                SegmentedButton<FrequencyPeriod>(
                   segments: const [
-                    ButtonSegment(value: 'day', label: Text('Day')),
-                    ButtonSegment(value: 'week', label: Text('Week')),
+                    ButtonSegment(value: FrequencyPeriod.day, label: Text('Day')),
+                    ButtonSegment(value: FrequencyPeriod.week, label: Text('Week')),
+                    ButtonSegment(value: FrequencyPeriod.month, label: Text('Month')),
                   ],
                   selected: {_frequencyUnit},
                   onSelectionChanged: (selection) {

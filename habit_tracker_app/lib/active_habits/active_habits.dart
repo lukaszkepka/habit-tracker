@@ -1,27 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../create_habit/create_habit_page.dart';
+import '../core/domain/habit_definition.dart';
+import '../core/domain/habits_repository.dart';
 import 'active_habit.dart';
-
-/// Mock rows in the same shape as API JSON (snake_case keys). Mutable so new
-/// habits from [CreateHabitPage] can be appended.
-final List<Map<String, String>> mockActiveHabitJson = [
-  {
-    'name': 'reading',
-    'last_record_date': '2026-04-01',
-    'started': '2025-01-01',
-  },
-  {
-    'name': 'stretching',
-    'last_record_date': '2026-03-29',
-    'started': '2025-01-01',
-  },
-  {
-    'name': 'exercising',
-    'last_record_date': '2026-04-11',
-    'started': '2024-08-01',
-  },
-];
 
 String _formatCalendarDate(DateTime d) {
   final y = d.year.toString().padLeft(4, '0');
@@ -32,46 +14,52 @@ String _formatCalendarDate(DateTime d) {
 
 /// Lists active habits: name, last record date, started date.
 ///
-/// When [habitsOverride] is set, that list is shown and the FAB does not
-/// mutate [mockActiveHabitJson].
+/// Habits are read from (and created in) [repository].
 class ActiveHabitsList extends StatefulWidget {
-  const ActiveHabitsList({super.key, this.habitsOverride});
+  const ActiveHabitsList({super.key, required this.repository});
 
-  final List<ActiveHabit>? habitsOverride;
+  final HabitsRepository repository;
 
   @override
   State<ActiveHabitsList> createState() => _ActiveHabitsListState();
 }
 
 class _ActiveHabitsListState extends State<ActiveHabitsList> {
-  List<ActiveHabit> get _habits {
-    if (widget.habitsOverride != null) {
-      return widget.habitsOverride!;
-    }
-    return mockActiveHabitJson.map(ActiveHabit.fromJson).toList();
+  late Stream<List<ActiveHabit>> _habits;
+
+  @override
+  void initState() {
+    super.initState();
+    _habits = _watch();
   }
 
-  Future<void> _openCreateHabit() async {
-    if (widget.habitsOverride != null) {
-      return;
+  @override
+  void didUpdateWidget(ActiveHabitsList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.repository != widget.repository) {
+      _habits = _watch();
     }
-    final created = await Navigator.of(context).push<Map<String, String>>(
-      MaterialPageRoute<Map<String, String>>(
+  }
+
+  Stream<List<ActiveHabit>> _watch() => widget.repository
+      .watchHabits()
+      .map((habits) => habits.map(ActiveHabit.fromDefinition).toList());
+
+  Future<void> _openCreateHabit() async {
+    final created = await Navigator.of(context).push<NewHabitDefinition>(
+      MaterialPageRoute<NewHabitDefinition>(
         builder: (context) => const CreateHabitPage(),
       ),
     );
-    if (!mounted || created == null) {
+    if (created == null) {
       return;
     }
-    setState(() {
-      mockActiveHabitJson.add(created);
-    });
+    await widget.repository.createHabit(created);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final habits = _habits;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Active habits')),
@@ -79,7 +67,20 @@ class _ActiveHabitsListState extends State<ActiveHabitsList> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            child: ListView.separated(
+            child: StreamBuilder<List<ActiveHabit>>(
+              stream: _habits,
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text('Could not load habits: ${snapshot.error}'));
+                }
+                final habits = snapshot.data;
+                if (habits == null) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (habits.isEmpty) {
+                  return const Center(child: Text('No habits yet'));
+                }
+                return ListView.separated(
               itemCount: habits.length,
               separatorBuilder: (context, index) => const Divider(height: 1),
               itemBuilder: (context, index) {
@@ -91,7 +92,7 @@ class _ActiveHabitsListState extends State<ActiveHabitsList> {
                     children: [
                       const SizedBox(height: 4),
                       Text(
-                        'Last record: ${_formatCalendarDate(habit.lastRecordDate)}',
+                        'Last record: ${habit.lastRecordDate == null ? 'never' : _formatCalendarDate(habit.lastRecordDate!)}',
                         style: theme.textTheme.bodyMedium,
                       ),
                       Text(
@@ -103,12 +104,14 @@ class _ActiveHabitsListState extends State<ActiveHabitsList> {
                   isThreeLine: true,
                 );
               },
+                );
+              },
             ),
           ),
           SafeArea(
             minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: FilledButton.icon(
-              onPressed: widget.habitsOverride != null ? null : _openCreateHabit,
+              onPressed: _openCreateHabit,
               icon: const Icon(Icons.add),
               label: const Text('Add habit'),
             ),
