@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import 'active_habits/active_habits.dart';
 import 'core/database/database_seeder.dart';
 import 'core/database/drift/app_database.dart';
 import 'core/database/drift/drift_habits_repository.dart';
 import 'core/logger.dart';
 import 'core/domain/habits_repository.dart';
+import 'scaffold/app_shell.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: ActiveHabitsList(repository: repository),
+      home: AppShell(repository: repository),
     );
   }
 }

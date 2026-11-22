@@ -10,7 +10,18 @@ part 'app_database.g.dart';
 @DriftDatabase(tables: [HabitDefinitions, HabitLogs])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
-      : super(executor ?? driftDatabase(name: 'habit_tracker'));
+      : super(
+          executor ??
+              driftDatabase(
+                name: 'habit_tracker',
+                // Only used on web; files live in web/ and must match the
+                // sqlite3 and drift versions in pubspec.lock.
+                web: DriftWebOptions(
+                  sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+                  driftWorker: Uri.parse('drift_worker.js'),
+                ),
+              ),
+        );
 
   @override
   int get schemaVersion => 1;

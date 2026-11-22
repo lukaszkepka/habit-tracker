@@ -21,6 +21,11 @@ On click: should open the settings screen (not implemented yet)
 It's placed on the bottom on the screen vertically - a standard approach used in the mobile apps. 
 It contains the icons that navigate to different screens
 
+### This week 
+
+Icon: #pick up something
+Navigates to: this_week screen
+
 ### Habits 
 
 Icon: #pick up something

@@ -227,10 +227,13 @@ class _CreateHabitPageState extends State<CreateHabitPage> {
               trailing: const Icon(Icons.schedule),
               onTap: _pickNotificationTime,
             ),
-            const SizedBox(height: 24),
-            FilledButton(onPressed: _submit, child: const Text('Save')),
           ],
         ),
+      ),
+      // Pinned to the bottom of the screen, outside the scrolling form.
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: FilledButton(onPressed: _submit, child: const Text('Save')),
       ),
     );
   }
